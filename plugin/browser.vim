@@ -115,18 +115,37 @@ com! -nargs=+ VimTipT          call VimTipSearch(<q-args>,'tabnew')
 
 "OpenWebBrowser  {{{1
 fun! OpenWebBrowser (address, method)
-  exe a:method . " " . a:address
-  exe "set buftype=nofile"
-  exe "silent r!lynx -dump " . a:address
+  "exe a:method . " " . a:address
+  if bufexists(a:address)
+      exe "buffer " . a:address
+      echo "buffer exists"
+  else
+      exe "enew"
+      exe "set buftype=nofile"
+      exe "set noswapfile"
+      exe "file ".substitute(a:address, "\\V?\\|*", "ß", "")
+  endif
+  exe "silent r!lynx -dump " . shellescape(a:address)
   exe "set syntax=text"
   "add some syntax rules (thanks to jamesson on #vim)
   syn match Underlined /\[\d*\]\w*/ contains=LineNr
   syn match LineNr /\[\d*\]/ contained
   exe "norm gg"
   exe "nnoremap <buffer> <tab> /\\[\\d\\+\\]\\w*/b+1<cr>"
+  exe "nnoremap <buffer> <s-tab> ?\\[\\d\\+\\]\\w*?b+1<cr>"
+  nmap <buffer> gl :FollowLink<cr>
   exe 'nnoremap <buffer> <cr> F[h/^ *<c-r><c-w>. http<cr>fh"py$:call OpenLink("<c-r>p", "edit")<cr>'
   exe 'nnoremap <buffer> <c-cr> F[h/^ *<c-r><c-w>. http<cr>fh"py$:call OpenLink("<c-r>p","tabnew")<cr>'
 endfun
+
+fun! FollowLink()
+    call search("^ *".v:count1.". http:", 'w')
+    normal fh"py$
+    call OpenLink(@p, "edit")
+endfun
+
+com! -count FollowLink call FollowLink()
+
 
 "OpenLink {{{1
 fun! OpenLink (address, method)
@@ -166,7 +185,7 @@ fun! OpenGoogle (sentence,lucky,site,method)
     endif
 
     let topic = substitute(a:sentence, " ", "+", "g") 
-    let address = 'http://www.google.com/search\?'.type.'=yes\&q=' . topic .site_clause
+    let address = 'http://www.google.com/search?'.type.'=yes&q=' . topic .site_clause
     call OpenWebBrowser(address, a:method)
 endfun
 "OpenWikipedia {{{1
